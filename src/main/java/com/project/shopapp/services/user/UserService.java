@@ -1,5 +1,6 @@
 package com.project.shopapp.services.user;
 
+import com.project.shopapp.components.JwtTokenUtils;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
@@ -16,8 +17,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -25,6 +32,9 @@ public class UserService implements IUserService{
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final LocalizationUtils localizationUtils;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenUtils jwtTokenUtil;
+    private final AuthenticationManager authenticationManager;
     @Override
     @Transactional
     public User createUser(UserDTO userDTO) throws Exception {
@@ -63,16 +73,62 @@ public class UserService implements IUserService{
         // Kiểm tra nếu có accountId, không yêu cầu password
         if(userDTO.getFacebookAccountId() ==0 && userDTO.getGoogleAccountId() ==0){
             String password = userDTO.getPassword();
-            // mã hóa password (spring security làm sau)
-//            String encodedPassword = passwordEncoder.encode(password);
-//            newUser.setPassword(encodedPassword);
+            // mã hóa password (spring security )
+            String encodedPassword = passwordEncoder.encode(password);
+            newUser.setPassword(encodedPassword);
         }
         return userRepository.save(newUser);
     }
 
     @Override
-    public String login(UserLoginDTO userLoginDT) throws Exception {
-        return null;
+    public String login(UserLoginDTO userLoginDTO) throws Exception {
+        Optional<User> optionalUser = Optional.empty();
+        String subject = null;
+        // Check if the user exists by phone number
+        if (userLoginDTO.getPhoneNumber() != null && !userLoginDTO.getPhoneNumber().isBlank()) {
+            optionalUser = userRepository.findByPhoneNumber(userLoginDTO.getPhoneNumber());
+            subject = userLoginDTO.getPhoneNumber();
+        }
+
+        // If the user is not found by phone number, check by email
+        if (optionalUser.isEmpty() && userLoginDTO.getEmail() != null) {
+            optionalUser = userRepository.findByEmail(userLoginDTO.getEmail());
+            subject = userLoginDTO.getEmail();
+        }
+
+        // If user is not found, throw an exception
+        if (optionalUser.isEmpty()) {
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
+        }
+
+        // Get the existing user
+        User existingUser = optionalUser.get();
+
+        //check password
+        if (existingUser.getFacebookAccountId() == 0
+                && existingUser.getGoogleAccountId() == 0) {
+            if(!passwordEncoder.matches(userLoginDTO.getPassword(), existingUser.getPassword())) {
+                throw new BadCredentialsException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
+            }
+        }
+        /*
+        Optional<Role> optionalRole = roleRepository.findById(roleId);
+        if(optionalRole.isEmpty() || !roleId.equals(existingUser.getRole().getId())) {
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS));
+        }
+        */
+        if(!existingUser.isActive()) {
+            throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
+        }
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                subject, userLoginDTO.getPassword(),
+                existingUser.getAuthorities()
+        );
+
+        //authenticate with Java Spring security
+        authenticationManager.authenticate(authenticationToken);
+        return jwtTokenUtil.generateToken(existingUser);
     }
 
     @Override
