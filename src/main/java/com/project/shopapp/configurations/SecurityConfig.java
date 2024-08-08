@@ -25,22 +25,11 @@ public class SecurityConfig {
     //user's detail object
     @Bean
     public UserDetailsService userDetailsService() {
-        return subject -> {
-            // Attempt to find user by phone number
-            Optional<User> userByPhoneNumber = userRepository.findByPhoneNumber(subject);
-            if (userByPhoneNumber.isPresent()) {
-                return userByPhoneNumber.get(); // Return UserDetails if found
-            }
-
-            // If user not found by phone number, attempt to find by email
-            Optional<User> userByEmail = userRepository.findByEmail(subject);
-            if (userByEmail.isPresent()) {
-                return userByEmail.get(); // Return UserDetails if found
-            }
-
-            // If user not found by either phone number or email, throw UsernameNotFoundException
-            throw new UsernameNotFoundException("User not found with subject: " + subject);
-        };
+        return phoneNumber -> userRepository
+                .findByPhoneNumber(phoneNumber)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Cannot find user with phone number = "+phoneNumber));
     }
     @Bean
     public PasswordEncoder passwordEncoder() {

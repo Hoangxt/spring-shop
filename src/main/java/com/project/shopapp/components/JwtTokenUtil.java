@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -23,32 +24,20 @@ import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
-public class JwtTokenUtils {
+public class JwtTokenUtil {
     @Value("${jwt.expiration}")
     private int expiration; //save to an environment variable
-
-    @Value("${jwt.expiration-refresh-token}")
-    private int expirationRefreshToken;
-
     @Value("${jwt.secretKey}")
     private String secretKey;
-
-    private static final Logger logger = LoggerFactory.getLogger(JwtTokenUtils.class);
-
-    private final TokenRepository tokenRepository;
-
     public String generateToken(com.project.shopapp.models.User user) throws Exception{
-        //properties => claims
+        //properties => claims (đẻ hứng các đối tuợng user java spring)
         Map<String, Object> claims = new HashMap<>();
-        // Add subject identifier (phone number or email)
-        String subject = getSubject(user);
-        claims.put("subject", subject);
-        // Add user ID
-        claims.put("userId", user.getId());
+//        this.generateSecretKey();
+        claims.put("phoneNumber", user.getPhoneNumber());
         try {
             String token = Jwts.builder()
                     .setClaims(claims) //how to extract claims from this ?
-                    .setSubject(subject)
+                    .setSubject(user.getPhoneNumber())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration * 1000L))
                     .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                     .compact();
@@ -59,18 +48,9 @@ public class JwtTokenUtils {
             //return null;
         }
     }
-    private static String getSubject(User user) {
-        // Determine subject identifier (phone number or email)
-        String subject = user.getPhoneNumber();
-        if (subject == null || subject.isBlank()) {
-            // If phone number is null or blank, use email as subject
-            subject = user.getEmail();
-        }
-        return subject;
-    }
     private Key getSignInKey() {
-        byte[] bytes = Decoders.BASE64.decode(secretKey);
-        //Keys.hmacShaKeyFor(Decoders.BASE64.decode("TaqlmGv1iEDMRiFp/pHuID1+T84IABfuA0xXh4GhiUI="));
+        byte[] bytes = Decoders.BASE64.decode(secretKey); // Xt1HgiQdRzGnXexaqyMfVPvUcMd7kc5YGwsh2Kb06w8=
+        //Keys.hmacShaKeyFor(Decoders.BASE64.decode("Xt1HgiQdRzGnXexaqyMfVPvUcMd7kc5YGwsh2Kb06w8="));
         return Keys.hmacShaKeyFor(bytes);
     }
     private String generateSecretKey() {
@@ -96,32 +76,12 @@ public class JwtTokenUtils {
         Date expirationDate = this.extractClaim(token, Claims::getExpiration);
         return expirationDate.before(new Date());
     }
-    public String getSubject(String token) {
-        return  extractClaim(token, Claims::getSubject);
+    public String extractPhoneNumber(String token) {
+        return extractClaim(token, Claims::getSubject);
     }
-    public boolean validateToken(String token, User userDetails) {
-        try {
-            String subject = extractClaim(token, Claims::getSubject);
-            //subject is phoneNumber or email
-            Token existingToken = tokenRepository.findByToken(token);
-            if(existingToken == null ||
-                    existingToken.isRevoked() ||
-                    !userDetails.isActive()
-            ) {
-                return false;
-            }
-            return (subject.equals(userDetails.getUsername()))
-                    && !isTokenExpired(token);
-        } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
-        } catch (ExpiredJwtException e) {
-            logger.error("JWT token is expired: {}", e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            logger.error("JWT token is unsupported: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty: {}", e.getMessage());
-        }
-
-        return false;
+    public boolean validateToken(String token, UserDetails userDetails) {
+        String phoneNumber = extractPhoneNumber(token);
+        return (phoneNumber.equals(userDetails.getUsername()))
+                && !isTokenExpired(token);
     }
 }
