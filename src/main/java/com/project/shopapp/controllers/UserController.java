@@ -1,6 +1,7 @@
 package com.project.shopapp.controllers;
 
 import com.project.shopapp.components.LocalizationUtils;
+import com.project.shopapp.components.SecurityUtils;
 import com.project.shopapp.dto.RefreshTokenDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
@@ -34,8 +35,8 @@ import java.util.List;
 public class UserController {
     private final IUserService userService;
     private final LocalizationUtils localizationUtils;
-//    private final ITokenService tokenService;
-
+    private final ITokenService tokenService;
+    private final SecurityUtils securityUtils;
     // get all user with pagination
     @GetMapping("")
     public ResponseEntity<ResponseObject> getAllUser(
@@ -134,6 +135,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
 //    @PostMapping("/login")
 //    public ResponseEntity<ResponseObject> login(
 //            @Valid @RequestBody UserLoginDTO userLoginDTO,
@@ -160,6 +162,7 @@ public class UserController {
 //                .status(HttpStatus.OK)
 //                .build());
 //    }
+
 //    @PostMapping("/refreshToken")
 //    public ResponseEntity<ResponseObject> refreshToken(
 //            @Valid @RequestBody RefreshTokenDTO refreshTokenDTO

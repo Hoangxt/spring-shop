@@ -1,6 +1,6 @@
 package com.project.shopapp.services.user;
 
-import com.project.shopapp.components.JwtTokenUtil;
+import com.project.shopapp.components.JwtTokenUtils;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
@@ -33,7 +33,7 @@ public class UserService implements IUserService{
     private final RoleRepository roleRepository;
     private final LocalizationUtils localizationUtils;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenUtil jwtTokenUtil;
+    private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
     @Override
     @Transactional
@@ -128,7 +128,7 @@ public class UserService implements IUserService{
 
         //authenticate with Java Spring security
         authenticationManager.authenticate(authenticationToken);
-        return jwtTokenUtil.generateToken(existingUser);
+        return jwtTokenUtils.generateToken(existingUser);
     }
 
     @Override

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,7 @@ public class CategoryController {
     //    private final KafkaTemplate<String, Object> kafkaTemplate;
     // Tạo một category mới
     @PostMapping("")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResponseObject> createCategory(
             @Valid @RequestBody CategoryDTO categoryDTO,
             BindingResult result) {
@@ -88,6 +90,7 @@ public class CategoryController {
 
     // update category theo id
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResponseObject> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryDTO categoryDTO
@@ -102,6 +105,7 @@ public class CategoryController {
 
     // Xóa category theo id
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResponseObject> deleteCategory(@PathVariable Long id) throws Exception {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok(

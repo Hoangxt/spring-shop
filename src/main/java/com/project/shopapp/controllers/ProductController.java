@@ -24,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
@@ -74,6 +75,7 @@ public class ProductController {
     // Uploading product images
     @PostMapping(value = "uploads/{id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResponseObject> uploadImages(
             @PathVariable("id") Long productId,
             @ModelAttribute("files") List<MultipartFile> files
@@ -238,9 +240,25 @@ public class ProductController {
         );
     }
 
+    //update a product
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    //@SecurityRequirement(name="bearer-key")
+    //@Operation(security = { @SecurityRequirement(name = "bearer-key") })
+    public ResponseEntity<ResponseObject> updateProduct(
+            @PathVariable long id,
+            @RequestBody ProductDTO productDTO) throws Exception {
+        Product updatedProduct = productService.updateProduct(id, productDTO);
+        return ResponseEntity.ok(ResponseObject.builder()
+                .data(updatedProduct)
+                .message("Update product successfully")
+                .status(HttpStatus.OK)
+                .build());
+    }
+
     // delete product by id
     @DeleteMapping("/{id}")
-//    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
 //    @Operation(security = { @SecurityRequirement(name = "bearer-key") })
     public ResponseEntity<ResponseObject> deleteProduct(@PathVariable long id) {
         productService.deleteProduct(id);
