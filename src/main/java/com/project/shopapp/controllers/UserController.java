@@ -123,45 +123,45 @@ public class UserController {
     }
 
 
-    @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @Valid @RequestBody UserLoginDTO userLoginDTO
-    ) {
-        try {
-            String token = userService.login(userLoginDTO);
-
-            return ResponseEntity.ok().body(token);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
 //    @PostMapping("/login")
-//    public ResponseEntity<ResponseObject> login(
-//            @Valid @RequestBody UserLoginDTO userLoginDTO,
-//            HttpServletRequest request
-//    ) throws Exception {
-//        // Kiểm tra thông tin đăng nhập và sinh token
-//        String token = userService.login(userLoginDTO);
-//        String userAgent = request.getHeader("User-Agent");
-//        User userDetail = userService.getUserDetailsFromToken(token);
-//        Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
+//    public ResponseEntity<String> login(
+//            @Valid @RequestBody UserLoginDTO userLoginDTO
+//    ) {
+//        try {
+//            String token = userService.login(userLoginDTO);
 //
-//        LoginResponse loginResponse = LoginResponse.builder()
-//                .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
-//                .token(jwtToken.getToken())
-//                .tokenType(jwtToken.getTokenType())
-//                .refreshToken(jwtToken.getRefreshToken())
-//                .username(userDetail.getUsername())
-//                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
-//                .id(userDetail.getId())
-//                .build();
-//        return ResponseEntity.ok().body(ResponseObject.builder()
-//                .message("Login successfully")
-//                .data(loginResponse)
-//                .status(HttpStatus.OK)
-//                .build());
+//            return ResponseEntity.ok().body(token);
+//        } catch (Exception e) {
+//            return ResponseEntity.badRequest().body(e.getMessage());
+//        }
 //    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ResponseObject> login(
+            @Valid @RequestBody UserLoginDTO userLoginDTO,
+            HttpServletRequest request
+    ) throws Exception {
+        // Kiểm tra thông tin đăng nhập và sinh token
+        String token = userService.login(userLoginDTO);
+        String userAgent = request.getHeader("User-Agent");
+        User userDetail = userService.getUserDetailsFromToken(token);
+        Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
+
+        LoginResponse loginResponse = LoginResponse.builder()
+                .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
+                .token(jwtToken.getToken())
+                .tokenType(jwtToken.getTokenType())
+                .refreshToken(jwtToken.getRefreshToken())
+                .username(userDetail.getUsername())
+                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
+                .id(userDetail.getId())
+                .build();
+        return ResponseEntity.ok().body(ResponseObject.builder()
+                .message("Login successfully")
+                .data(loginResponse)
+                .status(HttpStatus.OK)
+                .build());
+    }
 
 //    @PostMapping("/refreshToken")
 //    public ResponseEntity<ResponseObject> refreshToken(

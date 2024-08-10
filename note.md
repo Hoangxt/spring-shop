@@ -38,3 +38,6 @@ response package: Lưu trữ các cấu trúc dữ liệu được trả về t�
 - create class OrderServiceImpl implements OrderService
 3.create order controller
 - create OrderController
+
+# Debug Order
+- breakpoint in user login (user controller) -> user service 

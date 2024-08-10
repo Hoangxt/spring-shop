@@ -6,11 +6,14 @@ import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.exceptions.DataNotFoundException;
+import com.project.shopapp.exceptions.ExpiredTokenException;
 import com.project.shopapp.exceptions.InvalidPasswordException;
 import com.project.shopapp.exceptions.PermissionDenyException;
 import com.project.shopapp.models.Role;
+import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
 import com.project.shopapp.repositories.RoleRepository;
+import com.project.shopapp.repositories.TokenRepository;
 import com.project.shopapp.repositories.UserRepository;
 import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
@@ -26,15 +29,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+import static com.project.shopapp.utils.ValidationUtils.isValidEmail;
+
 @RequiredArgsConstructor
 @Service
 public class UserService implements IUserService{
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final LocalizationUtils localizationUtils;
+    private final TokenRepository tokenRepository;
+
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
+
+    private final LocalizationUtils localizationUtils;
+    private final JwtTokenUtils jwtTokenUtils;
+
     @Override
     @Transactional
     public User createUser(UserDTO userDTO) throws Exception {
@@ -133,12 +142,22 @@ public class UserService implements IUserService{
 
     @Override
     public User getUserDetailsFromToken(String token) throws Exception {
-        return null;
+        if(jwtTokenUtils.isTokenExpired(token)) {
+            throw new ExpiredTokenException("Token is expired");
+        }
+        String subject = jwtTokenUtils.getSubject(token);
+        Optional<User> user;
+        user = userRepository.findByPhoneNumber(subject);
+        if (user.isEmpty() && isValidEmail(subject)) {
+            user = userRepository.findByEmail(subject);
+        }
+        return user.orElseThrow(() -> new Exception("User not found"));
     }
 
     @Override
-    public User getUserDetailsFromRefreshToken(String token) throws Exception {
-        return null;
+    public User getUserDetailsFromRefreshToken(String refreshToken) throws Exception {
+        Token existingToken = tokenRepository.findByRefreshToken(refreshToken);
+        return getUserDetailsFromToken(existingToken.getToken());
     }
 
     @Override
@@ -148,7 +167,7 @@ public class UserService implements IUserService{
 
     @Override
     public Page<User> findAll(String keyword, Pageable pageable) throws Exception {
-        return null;
+        return userRepository.findAll(keyword, pageable);
     }
 
     @Override
