@@ -14,6 +14,10 @@
 
 eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZU51bWJlciI6IjAxMjM0NTY3ODkiLCJzdWIiOiIwMTIzNDU2Nzg5IiwiZXhwIjoxNzI1NjczMzUyfQ.nTy0bIe9KvrDUJ3WbfdcfP131WU7iz_65i8QDoDIntM
 
+### Filter request with doFilterInternal
+- create filter package -> JwtTokenFilter.java
+- trừ các request /login và /register sẽ không kiểm tra
+-> add to WebSecurityConfig.Java
 # library
 https://mvnrepository.com/artifact/org.modelmapper/modelmapper/3.2.1
 -> create configurations package
