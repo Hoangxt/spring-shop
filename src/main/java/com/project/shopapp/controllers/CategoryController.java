@@ -49,7 +49,7 @@ public class CategoryController {
 //        this.kafkaTemplate.send("insert-a-category", category);//producer
 //        this.kafkaTemplate.setMessageConverter(new CategoryMessageConverter());
         return ResponseEntity.ok().body(ResponseObject.builder()
-                .message("Create category successfully")
+                .message(localizationUtils.getLocalizedMessage(MessageKeys.INSERT_CATEGORY_SUCCESSFULLY))
                 .status(HttpStatus.OK)
                 .data(category)
                 .build());
@@ -111,7 +111,7 @@ public class CategoryController {
         return ResponseEntity.ok(
                 ResponseObject.builder()
                         .status(HttpStatus.OK)
-                        .message("Delete category successfully")
+                        .message(localizationUtils.getLocalizedMessage(MessageKeys.DELETE_CATEGORY_SUCCESSFULLY))
                         .build());
     }
 }

@@ -221,6 +221,9 @@ public class ProductController {
                 //Sort.by("createdAt").descending()
                 Sort.by("id").ascending()
         );
+        logger.info(String.format("keyword = %s, category_id = %d, page = %d, limit = %d",
+                keyword, categoryId, page, limit));
+
         Page<ProductResponse> productPage = productService.getAllProducts(keyword, categoryId, pageRequest);
         // Lấy tổng số trang
         int totalPages = productPage.getTotalPages();

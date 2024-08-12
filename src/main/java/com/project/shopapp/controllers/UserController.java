@@ -6,6 +6,8 @@ import com.project.shopapp.dto.RefreshTokenDTO;
 import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
+import com.project.shopapp.exceptions.DataNotFoundException;
+import com.project.shopapp.exceptions.InvalidPasswordException;
 import com.project.shopapp.models.Token;
 import com.project.shopapp.models.User;
 import com.project.shopapp.responses.ResponseObject;
@@ -14,23 +16,30 @@ import com.project.shopapp.responses.user.UserListResponse;
 import com.project.shopapp.responses.user.UserResponse;
 import com.project.shopapp.services.token.ITokenService;
 import com.project.shopapp.services.user.IUserService;
+import com.project.shopapp.utils.FileUtils;
 import com.project.shopapp.utils.MessageKeys;
 import com.project.shopapp.utils.ValidationUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.prefix}/users")
@@ -153,28 +162,28 @@ public class UserController {
                 .build());
     }
 
-//    @PostMapping("/refreshToken")
-//    public ResponseEntity<ResponseObject> refreshToken(
-//            @Valid @RequestBody RefreshTokenDTO refreshTokenDTO
-//    ) throws Exception {
-//        User userDetail = userService.getUserDetailsFromRefreshToken(refreshTokenDTO.getRefreshToken());
-//        Token jwtToken = tokenService.refreshToken(refreshTokenDTO.getRefreshToken(), userDetail);
-//        LoginResponse loginResponse = LoginResponse.builder()
-//                .message("Refresh token successfully")
-//                .token(jwtToken.getToken())
-//                .tokenType(jwtToken.getTokenType())
-//                .refreshToken(jwtToken.getRefreshToken())
-//                .username(userDetail.getUsername())
-//                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
-//                .id(userDetail.getId()).build();
-//        return ResponseEntity.ok().body(
-//                ResponseObject.builder()
-//                        .data(loginResponse)
-//                        .message(loginResponse.getMessage())
-//                        .status(HttpStatus.OK)
-//                        .build());
-//
-//    }
+    @PostMapping("/refreshToken")
+    public ResponseEntity<ResponseObject> refreshToken(
+            @Valid @RequestBody RefreshTokenDTO refreshTokenDTO
+    ) throws Exception {
+        User userDetail = userService.getUserDetailsFromRefreshToken(refreshTokenDTO.getRefreshToken());
+        Token jwtToken = tokenService.refreshToken(refreshTokenDTO.getRefreshToken(), userDetail);
+        LoginResponse loginResponse = LoginResponse.builder()
+                .message("Refresh token successfully")
+                .token(jwtToken.getToken())
+                .tokenType(jwtToken.getTokenType())
+                .refreshToken(jwtToken.getRefreshToken())
+                .username(userDetail.getUsername())
+                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
+                .id(userDetail.getId()).build();
+        return ResponseEntity.ok().body(
+                ResponseObject.builder()
+                        .data(loginResponse)
+                        .message(loginResponse.getMessage())
+                        .status(HttpStatus.OK)
+                        .build());
+
+    }
 
     @PostMapping("/details")
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
@@ -213,6 +222,116 @@ public class UserController {
                         .status(HttpStatus.OK)
                         .build()
         );
+    }
+
+    @PutMapping("/reset-password/{userId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ResponseObject> resetPassword(@Valid @PathVariable long userId){
+        try {
+            String newPassword = UUID.randomUUID().toString().substring(0, 5); // Tạo mật khẩu mới
+            userService.resetPassword(userId, newPassword);
+            return ResponseEntity.ok(ResponseObject.builder()
+                    .message("Reset password successfully")
+                    .data(newPassword)
+                    .status(HttpStatus.OK)
+                    .build());
+        } catch (InvalidPasswordException e) {
+            return ResponseEntity.ok(ResponseObject.builder()
+                    .message("Invalid password")
+                    .data("")
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build());
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.ok(ResponseObject.builder()
+                    .message("User not found")
+                    .data("")
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build());
+        }
+    }
+
+    @PutMapping("/block/{userId}/{active}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ResponseObject> blockOrEnable(
+            @Valid @PathVariable long userId,
+            @Valid @PathVariable int active
+    ) throws Exception {
+        userService.blockOrEnable(userId, active > 0);
+        String message = active > 0 ? "Successfully enabled the user." : "Successfully blocked the user.";
+        return ResponseEntity.ok().body(ResponseObject.builder()
+                .message(message)
+                .status(HttpStatus.OK)
+                .data(null)
+                .build());
+    }
+
+    @PostMapping(value = "/upload-profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ResponseObject> uploadProfileImage(
+            @RequestParam("file") MultipartFile file
+    ) throws Exception {
+        User loginUser = securityUtils.getLoggedInUser();
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                    ResponseObject.builder()
+                            .message("Image file is required.")
+                            .build()
+            );
+        }
+
+        if (file.getSize() > 10 * 1024 * 1024) { // 10MB
+            return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                    .body(ResponseObject.builder()
+                            .message("Image file size exceeds the allowed limit of 10MB.")
+                            .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                            .build());
+        }
+
+        // Check file type
+        if (!FileUtils.isImageFile(file)) {
+            return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                    .body(ResponseObject.builder()
+                            .message("Uploaded file must be an image.")
+                            .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                            .build());
+        }
+
+        // Store file and get filename
+        String oldFileName = loginUser.getProfileImage();
+        String imageName = FileUtils.storeFile(file);
+
+        userService.changeProfileImage(loginUser.getId(), imageName);
+        // Delete old file if exists
+        if (!StringUtils.isEmpty(oldFileName)) {
+            FileUtils.deleteFile(oldFileName);
+        }
+//1aba82e1-4599-4c8b-8ec5-9c16e5aad379_3734888057500.png
+        return ResponseEntity.ok().body(ResponseObject.builder()
+                .message("Upload profile image successfully")
+                .status(HttpStatus.CREATED)
+                .data(imageName) // Return the filename or image URL
+                .build());
+    }
+
+    @GetMapping("/profile-images/{imageName}")
+    public ResponseEntity<?> viewImage(@PathVariable String imageName) {
+        try {
+            java.nio.file.Path imagePath = Paths.get("uploads/"+imageName);
+            UrlResource resource = new UrlResource(imagePath.toUri());
+
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(resource);
+            } else {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(new UrlResource(Paths.get("uploads/default-profile-image.jpeg").toUri()));
+                //return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     private boolean isMobileDevice(String userAgent) {

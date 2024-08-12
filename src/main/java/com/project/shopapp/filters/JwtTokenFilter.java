@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -43,7 +42,9 @@ public class JwtTokenFilter extends OncePerRequestFilter{
             }
             final String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "authHeader null or not started with Bearer");
                 return;
             }
             final String token = authHeader.substring(7);
@@ -64,9 +65,10 @@ public class JwtTokenFilter extends OncePerRequestFilter{
             }
             filterChain.doFilter(request, response); //enable bypass
         }catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+//            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write(e.getMessage());
         }
-
     }
     private boolean isBypassToken(@NonNull  HttpServletRequest request) {
 

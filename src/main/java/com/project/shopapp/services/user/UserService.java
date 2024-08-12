@@ -7,7 +7,7 @@ import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.exceptions.DataNotFoundException;
 import com.project.shopapp.exceptions.ExpiredTokenException;
-import com.project.shopapp.exceptions.InvalidPasswordException;
+//import com.project.shopapp.exceptions.InvalidPasswordException;
 import com.project.shopapp.exceptions.PermissionDenyException;
 import com.project.shopapp.models.Role;
 import com.project.shopapp.models.Token;
@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.project.shopapp.utils.ValidationUtils.isValidEmail;
@@ -120,12 +121,14 @@ public class UserService implements IUserService{
                 throw new BadCredentialsException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
             }
         }
+
         /*
         Optional<Role> optionalRole = roleRepository.findById(roleId);
         if(optionalRole.isEmpty() || !roleId.equals(existingUser.getRole().getId())) {
             throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS));
         }
         */
+
         if(!existingUser.isActive()) {
             throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.USER_IS_LOCKED));
         }
@@ -201,22 +204,39 @@ public class UserService implements IUserService{
     }
 
     @Override
-    public Page<User> findAll(String keyword, Pageable pageable) throws Exception {
+    public Page<User> findAll(String keyword, Pageable pageable) {
         return userRepository.findAll(keyword, pageable);
     }
 
     @Override
-    public void resetPassword(Long userId, String newPassword) throws InvalidPasswordException, DataNotFoundException {
-
+    @Transactional
+    public void resetPassword(Long userId, String newPassword)
+            throws DataNotFoundException {
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found"));
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        existingUser.setPassword(encodedPassword);
+        userRepository.save(existingUser);
+        //reset password => clear token
+        List<Token> tokens = tokenRepository.findByUser(existingUser);
+        tokenRepository.deleteAll(tokens);
     }
 
     @Override
+    @Transactional
     public void blockOrEnable(Long userId, Boolean active) throws DataNotFoundException {
-
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found"));
+        existingUser.setActive(active);
+        userRepository.save(existingUser);
     }
 
     @Override
+    @Transactional
     public void changeProfileImage(Long userId, String imageName) throws Exception {
-
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found"));
+        existingUser.setProfileImage(imageName);
+        userRepository.save(existingUser);
     }
 }
