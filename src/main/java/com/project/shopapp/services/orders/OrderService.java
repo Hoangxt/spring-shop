@@ -80,6 +80,9 @@ public class OrderService implements IOrderService{
             orderDetail.setProduct(product);
             orderDetail.setNumberOfProducts(quantity);
             // Các trường khác của OrderDetail nếu cần
+
+            // giá của sản phẩm = giá của sản phẩm * số lượng
+//            orderDetail.setPrice(product.getPrice() * quantity);
             orderDetail.setPrice(product.getPrice());
 
             // Thêm OrderDetail vào danh sách

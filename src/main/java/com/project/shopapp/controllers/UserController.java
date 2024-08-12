@@ -3,6 +3,7 @@ package com.project.shopapp.controllers;
 import com.project.shopapp.components.LocalizationUtils;
 import com.project.shopapp.components.SecurityUtils;
 import com.project.shopapp.dto.RefreshTokenDTO;
+import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.models.Token;
@@ -23,11 +24,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("${api.prefix}/users")
@@ -39,6 +42,7 @@ public class UserController {
     private final SecurityUtils securityUtils;
     // get all user with pagination
     @GetMapping("")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ResponseObject> getAllUser(
             @RequestParam(defaultValue = "", required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -122,20 +126,6 @@ public class UserController {
                 .build());
     }
 
-
-//    @PostMapping("/login")
-//    public ResponseEntity<String> login(
-//            @Valid @RequestBody UserLoginDTO userLoginDTO
-//    ) {
-//        try {
-//            String token = userService.login(userLoginDTO);
-//
-//            return ResponseEntity.ok().body(token);
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().body(e.getMessage());
-//        }
-//    }
-
     @PostMapping("/login")
     public ResponseEntity<ResponseObject> login(
             @Valid @RequestBody UserLoginDTO userLoginDTO,
@@ -185,6 +175,46 @@ public class UserController {
 //                        .build());
 //
 //    }
+
+    @PostMapping("/details")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
+    public ResponseEntity<ResponseObject> getUserDetails(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) throws Exception {
+        // Loại bỏ "Bearer " từ chuỗi token
+        String extractedToken = authorizationHeader.substring(7);
+        User userDetail = userService.getUserDetailsFromToken(extractedToken);
+        return ResponseEntity.ok().body(ResponseObject.builder()
+                .message("Get user details successfully")
+                .data(UserResponse.fromUser(userDetail))
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @PutMapping("/details/{userId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
+//    @Operation(security = { @SecurityRequirement(name = "bearer-key") })
+    public ResponseEntity<ResponseObject> updateUserDetails(
+            @PathVariable Long userId,
+            @RequestBody UpdateUserDTO updatedUserDTO,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) throws Exception{
+        String extractedToken = authorizationHeader.substring(7);
+        User user = userService.getUserDetailsFromToken(extractedToken);
+        // Ensure that the user making the request matches the user being updated
+        if (!Objects.equals(user.getId(), userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        User updatedUser = userService.updateUser(userId, updatedUserDTO);
+        return ResponseEntity.ok().body(
+                ResponseObject.builder()
+                        .message("Update user detail successfully")
+                        .data(UserResponse.fromUser(updatedUser))
+                        .status(HttpStatus.OK)
+                        .build()
+        );
+    }
+
     private boolean isMobileDevice(String userAgent) {
         // Kiểm tra User-Agent header để xác định thiết bị di động
         // Ví dụ đơn giản:
