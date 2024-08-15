@@ -17,6 +17,10 @@ Implement a Spring Boot application that subscribes to the Kafka Connect destina
 public class ProductListener {
     private final IProductRedisService productRedisService;
     private static final Logger logger = LoggerFactory.getLogger(ProductListener.class);
+    // Public no-argument constructor
+    public ProductListener() {
+        this.productRedisService = null; // or provide a default implementation
+    }
     @PrePersist
     public void prePersist(Product product) {
         logger.info("prePersist");
