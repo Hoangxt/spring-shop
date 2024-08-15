@@ -28,6 +28,13 @@ spring:
     basename: i18n/messages
     encoding: UTF-8
     default-locale: en
+  data:
+    redis:
+      #spring.data.redis.use-redis-cache
+      use-redis-cache: false
+      host: ${REDIS_HOST:localhost} # Default to 'localhost' if not provided
+      #host: ${REDIS_HOST:ubuntu-server-01.local} # Default to 'localhost' if not provided
+      port: ${REDIS_PORT:6379}      # Default to 6379 if not provided
 api:
   prefix: api/v1
 jwt:

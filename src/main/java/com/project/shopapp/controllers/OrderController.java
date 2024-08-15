@@ -23,6 +23,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("${api.prefix}/orders")
@@ -109,7 +110,7 @@ public class OrderController {
         Order order = orderService.getOrderById(id);
         // Kiểm tra xem người dùng hiện tại có phải là người đã đặt đơn hàng hay không
         User loginUser = securityUtils.getLoggedInUser();
-        if (loginUser.getId() != order.getUser().getId()) {
+        if (!Objects.equals(loginUser.getId(), order.getUser().getId())) {
             return ResponseEntity.badRequest().body(ResponseObject.builder()
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
@@ -138,7 +139,7 @@ public class OrderController {
                 .couponCode(order.getCoupon().getCode())
                 */
                 .status(OrderStatus.CANCELLED)
-                .build();;
+                .build();
 
         order = orderService.updateOrder(id, orderDTO);
         return ResponseEntity.ok(

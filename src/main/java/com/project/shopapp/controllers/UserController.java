@@ -30,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -152,7 +153,7 @@ public class UserController {
                 .tokenType(jwtToken.getTokenType())
                 .refreshToken(jwtToken.getRefreshToken())
                 .username(userDetail.getUsername())
-                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
+                .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
                 .id(userDetail.getId())
                 .build();
         return ResponseEntity.ok().body(ResponseObject.builder()
@@ -174,7 +175,7 @@ public class UserController {
                 .tokenType(jwtToken.getTokenType())
                 .refreshToken(jwtToken.getRefreshToken())
                 .username(userDetail.getUsername())
-                .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
+                .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
                 .id(userDetail.getId()).build();
         return ResponseEntity.ok().body(
                 ResponseObject.builder()
@@ -302,10 +303,10 @@ public class UserController {
 
         userService.changeProfileImage(loginUser.getId(), imageName);
         // Delete old file if exists
-        if (!StringUtils.isEmpty(oldFileName)) {
+        if (!StringUtils.hasText(oldFileName)) {
             FileUtils.deleteFile(oldFileName);
         }
-//1aba82e1-4599-4c8b-8ec5-9c16e5aad379_3734888057500.png
+        //1aba82e1-4599-4c8b-8ec5-9c16e5aad379_3734888057500.png
         return ResponseEntity.ok().body(ResponseObject.builder()
                 .message("Upload profile image successfully")
                 .status(HttpStatus.CREATED)

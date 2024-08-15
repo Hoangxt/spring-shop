@@ -11,6 +11,7 @@ import com.project.shopapp.responses.ResponseObject;
 import com.project.shopapp.responses.product.ProductListResponse;
 import com.project.shopapp.responses.product.ProductResponse;
 import com.project.shopapp.services.product.IProductService;
+import com.project.shopapp.services.product.ProductRedisService;
 import com.project.shopapp.utils.FileUtils;
 import com.project.shopapp.utils.MessageKeys;
 import jakarta.validation.Valid;
@@ -43,7 +44,7 @@ public class ProductController {
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
     private final IProductService productService;
     private final LocalizationUtils localizationUtils;
-
+    private final ProductRedisService productRedisService;
     @PostMapping("")
     //POST http://localhost:8088/v1/api/products
     public ResponseEntity<ResponseObject> createProduct(
@@ -156,65 +157,16 @@ public class ProductController {
         }
     }
 
-    // get all products
-//    @GetMapping("")
-//    public ResponseEntity<ResponseObject> getProducts(
-//            @RequestParam(defaultValue = "") String keyword,
-//            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int limit
-//    ) throws JsonProcessingException {
-//        int totalPages = 0;
-//        //productRedisService.clear();
-//        // Tạo Pageable từ thông tin trang và giới hạn
-//        PageRequest pageRequest = PageRequest.of(
-//                page, limit,
-//                //Sort.by("createdAt").descending()
-//                Sort.by("id").ascending()
-//        );
-//        logger.info(String.format("keyword = %s, category_id = %d, page = %d, limit = %d",
-//                keyword, categoryId, page, limit));
-//        List<ProductResponse> productResponses = productRedisService
-//                .getAllProducts(keyword, categoryId, pageRequest);
-//        if (productResponses!=null && !productResponses.isEmpty()) {
-//            totalPages = productResponses.get(0).getTotalPages();
-//        }
-//        if(productResponses == null) {
-//            Page<ProductResponse> productPage = productService
-//                    .getAllProducts(keyword, categoryId, pageRequest);
-//            // Lấy tổng số trang
-//            totalPages = productPage.getTotalPages();
-//            productResponses = productPage.getContent();
-//            // Bổ sung totalPages vào các đối tượng ProductResponse
-//            for (ProductResponse product : productResponses) {
-//                product.setTotalPages(totalPages);
-//            }
-//            productRedisService.saveAllProducts(
-//                    productResponses,
-//                    keyword,
-//                    categoryId,
-//                    pageRequest
-//            );
-//        }
-//        ProductListResponse productListResponse = ProductListResponse
-//                .builder()
-//                .products(productResponses)
-//                .totalPages(totalPages)
-//                .build();
-//        return ResponseEntity.ok().body(ResponseObject.builder()
-//                .message("Get products successfully")
-//                .status(HttpStatus.OK)
-//                .data(productListResponse)
-//                .build());
-//    }
-
+    // Get all products [redis]
     @GetMapping("")
-    public ResponseEntity<ProductListResponse> getProducts(
+    public ResponseEntity<ResponseObject> getProducts(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit
-    ) {
+    ) throws JsonProcessingException {
+        int totalPages = 0;
+        //productRedisService.clear();
         // Tạo Pageable từ thông tin trang và giới hạn
         PageRequest pageRequest = PageRequest.of(
                 page, limit,
@@ -223,17 +175,67 @@ public class ProductController {
         );
         logger.info(String.format("keyword = %s, category_id = %d, page = %d, limit = %d",
                 keyword, categoryId, page, limit));
-
-        Page<ProductResponse> productPage = productService.getAllProducts(keyword, categoryId, pageRequest);
-        // Lấy tổng số trang
-        int totalPages = productPage.getTotalPages();
-        List<ProductResponse> products = productPage.getContent();
-        return ResponseEntity.ok(ProductListResponse
+        List<ProductResponse> productResponses = productRedisService
+                .getAllProducts(keyword, categoryId, pageRequest);
+        if (productResponses!=null && !productResponses.isEmpty()) {
+            totalPages = productResponses.get(0).getTotalPages();
+        }
+        if(productResponses == null) {
+            Page<ProductResponse> productPage = productService
+                    .getAllProducts(keyword, categoryId, pageRequest);
+            // Lấy tổng số trang
+            totalPages = productPage.getTotalPages();
+            productResponses = productPage.getContent();
+            // Bổ sung totalPages vào các đối tượng ProductResponse
+            for (ProductResponse product : productResponses) {
+                product.setTotalPages(totalPages);
+            }
+            productRedisService.saveAllProducts(
+                    productResponses,
+                    keyword,
+                    categoryId,
+                    pageRequest
+            );
+        }
+        ProductListResponse productListResponse = ProductListResponse
                 .builder()
-                .products(products)
+                .products(productResponses)
                 .totalPages(totalPages)
+                .build();
+        return ResponseEntity.ok().body(ResponseObject.builder()
+                .message("Get products successfully")
+                .status(HttpStatus.OK)
+                .data(productListResponse)
                 .build());
     }
+
+//    no redis
+//    @GetMapping("")
+//    public ResponseEntity<ProductListResponse> getProducts(
+//            @RequestParam(defaultValue = "") String keyword,
+//            @RequestParam(defaultValue = "0", name = "category_id") Long categoryId,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int limit
+//    ) {
+//        // Tạo Pageable từ thông tin trang và giới hạn
+//        PageRequest pageRequest = PageRequest.of(
+//                page, limit,
+//                //Sort.by("createdAt").descending()
+//                Sort.by("id").ascending()
+//        );
+//        logger.info(String.format("keyword = %s, category_id = %d, page = %d, limit = %d",
+//                keyword, categoryId, page, limit));
+//
+//        Page<ProductResponse> productPage = productService.getAllProducts(keyword, categoryId, pageRequest);
+//        // Lấy tổng số trang
+//        int totalPages = productPage.getTotalPages();
+//        List<ProductResponse> products = productPage.getContent();
+//        return ResponseEntity.ok(ProductListResponse
+//                .builder()
+//                .products(products)
+//                .totalPages(totalPages)
+//                .build());
+//    }
 
     // get product by id
     //http://localhost:8088/api/v1/products/6

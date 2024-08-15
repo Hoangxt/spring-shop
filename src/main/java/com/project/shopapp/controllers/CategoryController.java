@@ -43,7 +43,6 @@ public class CategoryController {
                     .status(HttpStatus.BAD_REQUEST)
                     .data(null)
                     .build());
-
         }
         Category category = categoryService.createCategory(categoryDTO);
 //        this.kafkaTemplate.send("insert-a-category", category);//producer

@@ -112,8 +112,7 @@ public class OrderService implements IOrderService{
 
     @Override
     public Order getOrderById(Long orderId) {
-        Order selectedOrder = orderRepository.findById(orderId).orElse(null);
-        return selectedOrder;
+        return orderRepository.findById(orderId).orElse(null);
     }
 
     @Override
