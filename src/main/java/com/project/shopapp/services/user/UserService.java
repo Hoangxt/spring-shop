@@ -110,10 +110,8 @@ public class UserService implements IUserService{
         if (optionalUser.isEmpty()) {
             throw new DataNotFoundException(localizationUtils.getLocalizedMessage(MessageKeys.WRONG_PHONE_PASSWORD));
         }
-
         // Get the existing user
         User existingUser = optionalUser.get();
-
         //check password
         if (existingUser.getFacebookAccountId() == 0
                 && existingUser.getGoogleAccountId() == 0) {

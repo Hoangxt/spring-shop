@@ -143,6 +143,7 @@ public class UserController {
     ) throws Exception {
         // Kiểm tra thông tin đăng nhập và sinh token
         String token = userService.login(userLoginDTO);
+        // userAgent cho biết thiết bị của người dùng (máy tính, điện thoại, tablet, ...)
         String userAgent = request.getHeader("User-Agent");
         User userDetail = userService.getUserDetailsFromToken(token);
         Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));

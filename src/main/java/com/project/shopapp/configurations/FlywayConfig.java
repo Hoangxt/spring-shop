@@ -30,7 +30,8 @@ public class FlywayConfig {
                 .baselineOnMigrate(true)//default baseline is V1
                 .baselineVersion("0")
                 .load();
-        flyway.migrate();//run .sql file, IF VERSION IS NEWER
+        flyway.repair(); // Repair schema history before migration
+        flyway.migrate();//run .sql file, IF VERSION IS NEWER THAN THE CURRENT VERSION
         System.out.println("migrating...");
         return flyway;
     }
