@@ -28,6 +28,11 @@ spring:
     basename: i18n/messages
     encoding: UTF-8
     default-locale: en
+  flyway:
+    locations: classpath:/db/migration,classpath:/dev/db/migration
+    #Phiên bản baseline sẽ = 1 và không thực hiện bất kỳ thay đổi nào trong DB
+    baseline-on-migrate: true
+    baseline-version: 0
   data:
     redis:
       #spring.data.redis.use-redis-cache
@@ -45,6 +50,27 @@ logging:
   level:
     org:
       springframework.security: DEBUG
+
+# swagger-ui custom path
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+  show-actuator: true
+
+#health check
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: /api/v1/actuator
+      exposure:
+        #include: "health"
+        include: "health, info"
+
 
 
 

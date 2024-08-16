@@ -73,16 +73,81 @@ public class JwtTokenFilter extends OncePerRequestFilter{
     private boolean isBypassToken(@NonNull  HttpServletRequest request) {
 
         final List<Pair<String, String>> bypassTokens = Arrays.asList(
+                // Healthcheck request, no JWT token required
+                Pair.of(String.format("%s/healthcheck/health", apiPrefix), "GET"),
+                Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
+
                 Pair.of(String.format("%s/roles", apiPrefix), "GET"),
+                Pair.of(String.format("%s/policies**", apiPrefix), "GET"),
+
                 Pair.of(String.format("%s/products", apiPrefix), "GET"),
-                Pair.of(String.format("%s/orders", apiPrefix), "GET"),
                 Pair.of(String.format("%s/categories", apiPrefix), "GET"),
+
                 Pair.of(String.format("%s/users/register", apiPrefix), "POST"),
-                Pair.of(String.format("%s/users/login", apiPrefix), "POST")
+                Pair.of(String.format("%s/users/login", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/profile-images/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/users/refreshToken", apiPrefix), "POST"),
+
+                // Swagger
+                Pair.of("/api-docs","GET"),
+                Pair.of("/api-docs/**","GET"),
+                Pair.of("/swagger-resources","GET"),
+                Pair.of("/swagger-resources/**","GET"),
+                Pair.of("/configuration/ui","GET"),
+                Pair.of("/configuration/security","GET"),
+                Pair.of("/swagger-ui/**","GET"),
+                Pair.of("/swagger-ui.html", "GET"),
+                Pair.of("/swagger-ui/index.html", "GET")
         );
         for(Pair<String, String> bypassToken: bypassTokens) {
             if (request.getServletPath().contains(bypassToken.getFirst()) &&
                     request.getMethod().equals(bypassToken.getSecond())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isBypassToken2(@NonNull HttpServletRequest request) {
+        final List<Pair<String, String>> bypassTokens = Arrays.asList(
+                // Healthcheck request, no JWT token required
+                Pair.of(String.format("%s/healthcheck/health", apiPrefix), "GET"),
+                Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
+
+                Pair.of(String.format("%s/roles**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/policies**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/comments**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/coupons**", apiPrefix), "GET"),
+
+                Pair.of(String.format("%s/products**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/categories**", apiPrefix), "GET"),
+
+                Pair.of(String.format("%s/users/register", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/login", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/profile-images/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/users/refreshToken", apiPrefix), "POST"),
+
+                // Swagger
+                Pair.of("/api-docs","GET"),
+                Pair.of("/api-docs/**","GET"),
+                Pair.of("/swagger-resources","GET"),
+                Pair.of("/swagger-resources/**","GET"),
+                Pair.of("/configuration/ui","GET"),
+                Pair.of("/configuration/security","GET"),
+                Pair.of("/swagger-ui/**","GET"),
+                Pair.of("/swagger-ui.html", "GET"),
+                Pair.of("/swagger-ui/index.html", "GET")
+        );
+
+        String requestPath = request.getServletPath();
+        String requestMethod = request.getMethod();
+
+        for (Pair<String, String> token : bypassTokens) {
+            String path = token.getFirst();
+            String method = token.getSecond();
+            // Check if the request path and method match any pair in the bypassTokens list
+            if (requestPath.matches(path.replace("**", ".*"))
+                    && requestMethod.equalsIgnoreCase(method)) {
                 return true;
             }
         }
