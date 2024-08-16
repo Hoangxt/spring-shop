@@ -43,12 +43,9 @@ public class Product extends BaseEntity{
             fetch = FetchType.LAZY)
     private List<ProductImage> productImages;
 
-
-//    To do: có thể thêm sau
-
-//    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
-//    @JsonManagedReference
-//    private List<Comment> comments = new ArrayList<>();
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<Comment> comments = new ArrayList<>();
 //
 //
 //    @OneToMany(mappedBy = "product",

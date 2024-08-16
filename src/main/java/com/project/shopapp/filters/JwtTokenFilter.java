@@ -1,6 +1,5 @@
 package com.project.shopapp.filters;
 
-//import com.project.shopapp.components.JwtTokenUtil;
 import com.project.shopapp.components.JwtTokenUtils;
 import com.project.shopapp.models.User;
 import jakarta.servlet.FilterChain;
@@ -79,6 +78,7 @@ public class JwtTokenFilter extends OncePerRequestFilter{
 
                 Pair.of(String.format("%s/roles", apiPrefix), "GET"),
                 Pair.of(String.format("%s/policies**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/comments**", apiPrefix), "GET"),
 
                 Pair.of(String.format("%s/products", apiPrefix), "GET"),
                 Pair.of(String.format("%s/categories", apiPrefix), "GET"),

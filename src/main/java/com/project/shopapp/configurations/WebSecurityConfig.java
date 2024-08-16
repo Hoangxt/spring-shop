@@ -18,9 +18,9 @@ import org.springframework.boot.actuate.autoconfigure.security.reactive.Endpoint
 import static org.springframework.http.HttpMethod.*;
 
 @Configuration
-@EnableMethodSecurity
-//@EnableGlobalMethodSecurity(prePostEnabled = true)
+//@EnableMethodSecurity
 @EnableWebSecurity(debug = true)
+//@EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebMvc
 @RequiredArgsConstructor
 public class WebSecurityConfig {
